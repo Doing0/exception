@@ -5,7 +5,7 @@
  * User: Doing<vip.dulin@gmial.com>
  * Date: 2018/7/1/
  * Desc:重写TP5的Hander类（异常处理类）
- * 'exception_handle'       => '\extend\exception\ExceptionHandler',
+ * 'exception_handle'       => '\exception\ExceptionHandler',
  */
 
 
