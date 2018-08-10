@@ -1,115 +1,125 @@
 <?php
 /**
  * Created by PhpStorm
- * PROJECT: 异常处理类重写
- * User: Doing<vip.dulin@gmial.com>
- * Date: 2018/7/1/
- * Desc:重写TP5的Hander类（异常处理类）
- * 'exception_handle'       => '\exception\ExceptionHandler',
+ * PROJECT: zerg
+ * Author: Doing<vip.dulin@gmial.com>
+ * Date: 2018-07-28 14:56
+ * Module:异常类
+ * Desc:重写框架的Handler
+ *config    'exception_handle'       => 'exception\ExceptionHandler',
  */
-
 
 namespace exception;
 
+
+use Exception;
 use think\exception\Handle;
 use think\Log;
 
 class ExceptionHandler extends Handle
 {
-    //httpCode
     private $code;
-    //错误信息提示
     private $msg;
-    //自定义错误码
     private $errorCode;
     
-    /**
-     * Date: 2018-07-01 20:45
+    /**重写框架全局异常处理类
+     * Date: 2018-07-28 15:07
      * Author: Doing<vip.dulin@gmial.com>
-     * @param \Exception $e
+     * @param Exception $e
      * @return \think\Response|\think\response\Json
-     * Desc:覆盖Handle里面的render方法
+     * Desc:
      */
-    public function render(\Exception $e)
+    public function render(Exception $e)
     {
         if($e instanceof BaseException)
         {
-            $this->userError($e);
+            $this->setBaseExceptionAttr($e);
         }
         else
         {
-            $this->serError($e);
-        }//else
-        return $this->getResData(true);
-        
+            //调试模式
+            if(config('app_debug')) return parent::render($e);
+            $this->setServiceExceptionAttr();
+            //记录日志
+            $this->recordErrorLog($e);
+        }
+        return json($this->getResult(), $this->code);
+    }//pub
+    
+    /**
+     * Date: 2018-07-28 16:15
+     * Author: Doing<vip.dulin@gmial.com>
+     * @return array
+     * Desc:获取返回数据
+     */
+    private function getResult()
+    {
+        $url    = request()->url();
+        $method = request()->method();
+        $result = [
+            'msg'        => $this->msg,
+            'errorCode'  => $this->errorCode,
+            'requestUrl' => $method . '   ' . $url
+        ];
+        return $result;
     }//pf
     
     /**
-     * Date: 2018-07-01 21:07
+     * Date: 2018-07-28 16:51
      * Author: Doing<vip.dulin@gmial.com>
      * @param $e
-     * @return mixed
-     * Desc:客户端异常
+     * @return bool
+     * Desc:设置自定义异常信息
      */
-    private function userError($e)
+    private function setBaseExceptionAttr($e)
     {
-        //自定义的异常
         $this->code      = $e->code;
         $this->msg       = $e->msg;
         $this->errorCode = $e->errorCode;
-        return $e;
+        return true;
     }//pf
     
     /**
-     * Date: 2018-07-01 21:01
+     * Date: 2018-07-28 16:51
      * Author: Doing<vip.dulin@gmial.com>
-     * @param $e
-     * @return \think\Response
-     * Desc:服务器自己的错误
+     * @return bool
+     * Desc:设置服务器异常信息
      */
-    private function serError($e)
+    private function setServiceExceptionAttr()
     {
-        //默认render 页面呈现(debug模式)
-        if(config('app_debug')) return parent::render($e);
-        $this->code      = HttpCode::SER;
-        $this->msg       = ErrMsg::SER;
-        $this->errorCode = ErrorCode::SER;
-        $this->recordErrorLog($e);
-        return $e;
-        
+        $this->code      = 500;
+        $this->msg       = "I'm sorry, I seem to be sick";
+        $this->errorCode = '999';
+        return true;
     }//pf
     
     /**
-     * Date: 2018-07-01 20:44
+     * Date: 2018-07-28 21:02
      * Author: Doing<vip.dulin@gmial.com>
-     * @param \Exception $e
-     * Desc:将异常写入日志
+     * @param Exception $e
+     * Desc:服务器错误时写日志
      */
-    private function recordErrorLog(\Exception $e)
+    private function recordErrorLog(Exception $e)
     {
-        //初始化Log
-        Log::init(['type' => 'File', 'path' => LOG_PATH, 'level' => ['error']]);
-        //        Log::record($e->getTraceAsString());
-        //写入日志
+        $this->initLog();
         Log::record($e->getMessage(), 'error');
     }
     
-    /**
-     * Date: 2018-07-01 20:57
+    /**初始化写日志
+     * Date: 2018-07-28 21:21
      * Author: Doing<vip.dulin@gmial.com>
-     * @param bool $isUrl 是否返回url
-     * @return \think\response\Json
-     * Desc:取返回数据
+     * @param string $type
+     * @param array $level
+     * Desc:【这里的LOG_PATH是在入口文件重新定义了的】
      */
-    private function getResData($isUrl = true)
+    private function initLog($type = "File", $level = ['error'])
     {
-        $res['msg']        = $this->msg;
-        $res['error_code'] = $this->errorCode;
-        if($isUrl == true)
-        {
-            $res['request_url'] = request()->url();
-        }
-        //需要返回客户端当前请求的URL路径
-        return json($res, $this->code);
+        Log::init([
+            'type'  => $type,
+            'path'  => LOG_PATH,
+            'level' => $level
+        ]);
     }//pf
+    
+    
 }//class

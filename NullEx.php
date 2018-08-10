@@ -9,6 +9,8 @@
 
 namespace exception;
 
+
+
 class NullEx extends BaseException
 {
     //HTTP 状态码：400，200，500...

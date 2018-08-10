@@ -6,7 +6,6 @@
  * Date: 2018/7/1/
  * Desc:服务器自身问题
  */
-
 namespace exception;
 
 class SerEx extends BaseException
